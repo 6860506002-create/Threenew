@@ -21,63 +21,70 @@ let useFallback = true; // Default to fallback for immediate availability
 let fallbackNodes: number[] = [];
 let fallbackType: 'bst' | 'max-heap' | 'min-heap' = 'bst';
 
-// Background Sync Helper
+// Background Sync Helper with strict timeout
 async function syncToDb(action: 'insert' | 'update_type' | 'delete', data?: any) {
   if (!pool) return;
   
   try {
-    const connection = await pool.getConnection();
-    if (action === 'insert' && data !== undefined) {
-      await connection.query("INSERT INTO tree_nodes (value) VALUES (?)", [data]);
-    } else if (action === 'update_type' && data !== undefined) {
-      await connection.query("UPDATE tree_settings SET setting_value = ? WHERE setting_key = 'tree_type'", [data]);
-      await connection.query("DELETE FROM tree_nodes");
-    } else if (action === 'delete') {
-      await connection.query("DELETE FROM tree_nodes");
-    }
-    connection.release();
+    // Use a race to ensure background sync never hangs the event loop
+    await Promise.race([
+      (async () => {
+        const connection = await pool!.getConnection();
+        if (action === 'insert' && data !== undefined) {
+          await connection.query("INSERT INTO tree_nodes (value) VALUES (?)", [data]);
+        } else if (action === 'update_type' && data !== undefined) {
+          await connection.query("UPDATE tree_settings SET setting_value = ? WHERE setting_key = 'tree_type'", [data]);
+          await connection.query("DELETE FROM tree_nodes");
+        } else if (action === 'delete') {
+          await connection.query("DELETE FROM tree_nodes");
+        }
+        connection.release();
+      })(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("Sync Timeout")), 1500))
+    ]);
     console.log(`Background sync success: ${action}`);
   } catch (err) {
-    console.error(`Background sync failed for ${action}:`, (err as Error).message);
-    // We don't change useFallback here, we just let it fail silently in background
+    console.error(`Background sync suppressed: ${(err as Error).message}`);
   }
 }
 
-// Initialize Database Tables and Load Initial State
+// Initialize Database Tables and Load Initial State with strict timeout
 async function initDb() {
   try {
-    console.log("Attempting to connect to MariaDB for background sync...");
+    console.log("Starting DB init process...");
     pool = mysql.createPool({
       uri: dbUrl,
-      connectTimeout: 3000,
+      connectTimeout: 1500, // Very short timeout
       waitForConnections: true,
-      connectionLimit: 2,
+      connectionLimit: 1,
       queueLimit: 0
     });
 
-    const connection = await pool.getConnection();
-    console.log("MariaDB connected! Loading initial state...");
+    // Try to get initial state with a strict timeout
+    await Promise.race([
+      (async () => {
+        const connection = await pool!.getConnection();
+        console.log("MariaDB connected! Syncing initial state...");
 
-    await connection.query(`CREATE TABLE IF NOT EXISTS tree_nodes (id INT AUTO_INCREMENT PRIMARY KEY, value INT NOT NULL)`);
-    await connection.query(`CREATE TABLE IF NOT EXISTS tree_settings (setting_key VARCHAR(50) PRIMARY KEY, setting_value VARCHAR(50) NOT NULL)`);
-    
-    // Load existing data into memory
-    const [nodeRows]: any = await connection.query("SELECT value FROM tree_nodes ORDER BY id ASC");
-    const [typeRows]: any = await connection.query("SELECT setting_value FROM tree_settings WHERE setting_key = 'tree_type'");
-    
-    if (typeRows.length > 0) {
-      fallbackType = typeRows[0].setting_value;
-    } else {
-      await connection.query("INSERT INTO tree_settings (setting_key, setting_value) VALUES ('tree_type', 'bst')");
-    }
-    
-    fallbackNodes = nodeRows.map((n: any) => n.value);
-    
-    connection.release();
-    useFallback = false; 
-    console.log("Initial state loaded from MariaDB");
+        await connection.query(`CREATE TABLE IF NOT EXISTS tree_nodes (id INT AUTO_INCREMENT PRIMARY KEY, value INT NOT NULL)`);
+        await connection.query(`CREATE TABLE IF NOT EXISTS tree_settings (setting_key VARCHAR(50) PRIMARY KEY, setting_value VARCHAR(50) NOT NULL)`);
+        
+        const [nodeRows]: any = await connection.query("SELECT value FROM tree_nodes ORDER BY id ASC");
+        const [typeRows]: any = await connection.query("SELECT setting_value FROM tree_settings WHERE setting_key = 'tree_type'");
+        
+        if (typeRows.length > 0) {
+          fallbackType = typeRows[0].setting_value;
+        }
+        fallbackNodes = nodeRows.map((n: any) => n.value);
+        
+        connection.release();
+        useFallback = false; 
+        console.log("Initial state loaded");
+      })(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("Init Timeout")), 1500))
+    ]);
   } catch (err) {
-    console.error("MariaDB connection failed. App will run in Offline-First mode.");
+    console.log("DB Init skipped or failed (Normal for Vercel/Offline). Using memory mode.");
     useFallback = true;
   }
 }
@@ -147,9 +154,6 @@ async function getTreeState() {
 }
 
 async function startServer() {
-  // Start DB initialization in background, don't await it
-  initDb().catch(err => console.error("Background DB init failed:", err));
-  
   const app = express();
   const PORT = 3000;
 
@@ -202,6 +206,16 @@ async function startServer() {
     res.json(state);
   });
 
+  app.post("/api/tree/delete", async (req, res) => {
+    // Update memory immediately
+    fallbackNodes = [];
+    
+    // Background sync
+    syncToDb('delete');
+    
+    res.json({ success: true });
+  });
+
   app.delete("/api/tree", async (req, res) => {
     // Update memory immediately
     fallbackNodes = [];
@@ -227,6 +241,8 @@ async function startServer() {
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
+    // Start DB initialization in background AFTER server is listening
+    initDb().catch(err => console.error("Background DB init failed:", err));
   });
 }
 
