@@ -104,7 +104,8 @@ const insertBST = (root: TreeNode | null, value: number): TreeNode => {
   if (!root) return { value };
   if (value < root.value) {
     root.left = insertBST(root.left || null, value);
-  } else if (value > root.value) {
+  } else {
+    // Allow duplicates on the right side
     root.right = insertBST(root.right || null, value);
   }
   return root;
