@@ -12,48 +12,30 @@ const __dirname = path.dirname(__filename);
 
 // Database connection pool
 const rawDbUrl = process.env.DATABASE_URL || "mariadb://root:student@202.29.70.18:28000/6860506002";
-// mysql2 prefers mysql:// prefix even for MariaDB
 const dbUrl = rawDbUrl.replace("mariadb://", "mysql://");
 
 let pool: mysql.Pool | null = null;
-let useFallback = false;
+let useFallback = true; // Default to fallback for immediate availability
 
 // Fallback in-memory storage
 let fallbackNodes: number[] = [];
 let fallbackType: 'bst' | 'max-heap' | 'min-heap' = 'bst';
 
-try {
-  pool = mysql.createPool({
-    uri: dbUrl,
-    connectTimeout: 2000, // Reduce to 2 seconds for faster fallback
-    waitForConnections: true,
-    connectionLimit: 5,
-    queueLimit: 0,
-    enableKeepAlive: true,
-    keepAliveInitialDelay: 10000
-  });
-  console.log("Database pool created with 2s timeout");
-} catch (err) {
-  console.error("Failed to create database pool, using fallback:", err);
-  useFallback = true;
-}
-
-interface TreeNode {
-  value: number;
-  left?: TreeNode;
-  right?: TreeNode;
-}
-
 // Initialize Database Tables
 async function initDb() {
-  if (useFallback || !pool) return;
-  
   try {
-    // Fast check if connection is actually possible
-    const connection = await Promise.race([
-      pool.getConnection(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 2000))
-    ]) as mysql.PoolConnection;
+    console.log("Attempting to connect to MariaDB...");
+    pool = mysql.createPool({
+      uri: dbUrl,
+      connectTimeout: 2000,
+      waitForConnections: true,
+      connectionLimit: 2,
+      queueLimit: 0
+    });
+
+    // Test connection
+    const connection = await pool.getConnection();
+    console.log("MariaDB connection successful");
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS tree_nodes (
@@ -74,11 +56,22 @@ async function initDb() {
     }
     
     connection.release();
-    console.log("Database initialized successfully");
+    useFallback = false; // Successfully connected, stop using fallback
+    console.log("Database initialized and active");
   } catch (err) {
-    console.error("Database connection failed or timed out. Switching to fallback mode.");
+    console.error("MariaDB connection failed. Staying in fallback mode.");
     useFallback = true;
+    if (pool) {
+      await pool.end().catch(() => {});
+      pool = null;
+    }
   }
+}
+
+interface TreeNode {
+  value: number;
+  left?: TreeNode;
+  right?: TreeNode;
 }
 
 // Tree Logic Helpers
