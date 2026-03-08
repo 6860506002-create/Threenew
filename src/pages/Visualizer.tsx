@@ -72,20 +72,26 @@ export const Visualizer = () => {
 
   const handleInsert = async (e: React.FormEvent) => {
     e.preventDefault();
-    const val = parseInt(inputValue);
-    if (isNaN(val)) return;
+    if (!inputValue.trim()) return;
+
+    // Support multiple values separated by space or comma
+    const values = inputValue.split(/[\s,]+/).map(v => parseInt(v.trim())).filter(v => !isNaN(v));
+    if (values.length === 0) return;
 
     setIsSyncing(true);
-    addHistory('เพิ่มโหนด', val);
+    
+    // Add to history (first 3 if many)
+    values.slice(0, 3).forEach(v => addHistory('เพิ่มโหนด', v));
+    if (values.length > 3) addHistory(`และอีก ${values.length - 3} โหนด`, undefined);
     
     // Optimistic update
     setInputValue('');
     
     try {
-      const res = await fetch('/api/tree/insert', {
+      const res = await fetch('/api/tree/insert-bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value: val })
+        body: JSON.stringify({ values })
       });
       const data = await res.json();
       setTreeData(data.tree);
@@ -200,10 +206,10 @@ export const Visualizer = () => {
             <form onSubmit={handleInsert} className="space-y-4">
               <div className="relative">
                 <input
-                  type="number"
+                  type="text"
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  placeholder="ใส่ตัวเลขที่นี่..."
+                  placeholder="เช่น 10, 20, 30..."
                   className="w-full rounded-2xl border-4 border-slate-50 bg-slate-50 px-5 py-4 text-lg font-black text-slate-700 placeholder:text-slate-300 focus:border-pink-200 focus:bg-white focus:outline-none transition-all"
                 />
                 <button

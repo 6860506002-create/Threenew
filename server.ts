@@ -210,6 +210,25 @@ async function startServer() {
     res.json(state);
   });
 
+  app.post("/api/tree/insert-bulk", async (req, res) => {
+    const { values } = req.body;
+    if (!Array.isArray(values)) return res.status(400).json({ error: "Invalid values" });
+
+    const validValues = values.map(v => parseInt(v)).filter(v => !isNaN(v));
+    if (validValues.length === 0) return res.status(400).json({ error: "No valid values" });
+
+    // Update memory immediately
+    fallbackNodes.push(...validValues);
+    
+    // Background sync
+    for (const val of validValues) {
+      syncToDb('insert', val);
+    }
+    
+    const state = await getTreeState();
+    res.json(state);
+  });
+
   app.post("/api/tree/delete", async (req, res) => {
     // Update memory immediately
     fallbackNodes = [];
