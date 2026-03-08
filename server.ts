@@ -54,7 +54,7 @@ async function initDb() {
     console.log("Starting DB init process...");
     pool = mysql.createPool({
       uri: dbUrl,
-      connectTimeout: 1500, // Very short timeout
+      connectTimeout: 2000,
       waitForConnections: true,
       connectionLimit: 1,
       queueLimit: 0
@@ -74,17 +74,21 @@ async function initDb() {
         
         if (typeRows.length > 0) {
           fallbackType = typeRows[0].setting_value;
+        } else {
+          await connection.query("INSERT INTO tree_settings (setting_key, setting_value) VALUES ('tree_type', 'bst')");
         }
+        
+        // Populate memory from DB
         fallbackNodes = nodeRows.map((n: any) => n.value);
         
         connection.release();
         useFallback = false; 
-        console.log("Initial state loaded");
+        console.log(`Initial state loaded: ${fallbackNodes.length} nodes, type: ${fallbackType}`);
       })(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error("Init Timeout")), 1500))
+      new Promise((_, reject) => setTimeout(() => reject(new Error("Init Timeout")), 2000))
     ]);
   } catch (err) {
-    console.log("DB Init skipped or failed (Normal for Vercel/Offline). Using memory mode.");
+    console.log("DB Init skipped or failed. Using memory mode. Data will persist in memory until server restarts.");
     useFallback = true;
   }
 }
