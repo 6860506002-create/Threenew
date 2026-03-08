@@ -105,10 +105,45 @@ const insertBST = (root: TreeNode | null, value: number): TreeNode => {
   if (value < root.value) {
     root.left = insertBST(root.left || null, value);
   } else {
-    // Allow duplicates on the right side
     root.right = insertBST(root.right || null, value);
   }
   return root;
+};
+
+const getTreeStats = (root: TreeNode | null): any => {
+  if (!root) return { height: 0, count: 0, min: null, max: null, isBalanced: true };
+  
+  const nodes: number[] = [];
+  const traverse = (node: TreeNode) => {
+    nodes.push(node.value);
+    if (node.left) traverse(node.left);
+    if (node.right) traverse(node.right);
+  };
+  traverse(root);
+
+  const getHeight = (node: TreeNode | null): number => {
+    if (!node) return 0;
+    return 1 + Math.max(getHeight(node.left || null), getHeight(node.right || null));
+  };
+
+  const checkBalanced = (node: TreeNode | null): boolean => {
+    if (!node) return true;
+    const lh = getHeight(node.left || null);
+    const rh = getHeight(node.right || null);
+    return Math.abs(lh - rh) <= 1 && checkBalanced(node.left || null) && checkBalanced(node.right || null);
+  };
+
+  return {
+    height: getHeight(root),
+    count: nodes.length,
+    min: Math.min(...nodes),
+    max: Math.max(...nodes),
+    isBalanced: checkBalanced(root),
+    traversals: {
+      inOrder: [...nodes].sort((a, b) => a - b),
+      preOrder: nodes, // Simple pre-order for now
+    }
+  };
 };
 
 const buildTreeFromArray = (arr: number[], index: number): TreeNode | undefined => {
@@ -137,7 +172,6 @@ const siftUp = (arr: number[], type: 'max-heap' | 'min-heap') => {
 };
 
 async function getTreeState() {
-  // Always use memory for source of truth during session
   const type = fallbackType;
   const values = fallbackNodes;
   
@@ -155,7 +189,8 @@ async function getTreeState() {
     tree = buildTreeFromArray(heapArr, 0) || null;
   }
   
-  return { tree, type };
+  const stats = getTreeStats(tree);
+  return { tree, type, stats };
 }
 
 async function startServer() {

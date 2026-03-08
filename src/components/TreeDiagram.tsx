@@ -32,16 +32,49 @@ export const TreeDiagram = ({ data, layoutType = 'vertical', theme = 'classic' }
 
       if (!data) return;
 
-      const themeColors = {
-        classic: { node: '#FF6B6B', link: '#FFE3E3', text: '#4A4A4A' },
-        cyberpunk: { node: '#00F2FF', link: '#3D0066', text: '#FFFFFF' },
-        nature: { node: '#4ECDC4', link: '#E0F9F7', text: '#2F4F4F' }
+      const themeColors: Record<string, { 
+        node: string; 
+        link: string; 
+        text: string; 
+        bg: string; 
+        nodeBg: string; 
+        strokeWidth: number;
+        glow?: string;
+      }> = {
+        classic: { 
+          node: '#6366F1', 
+          link: '#E2E8F0', 
+          text: '#1E293B',
+          bg: '#FFFFFF',
+          nodeBg: '#FFFFFF',
+          strokeWidth: 4
+        },
+        cyberpunk: { 
+          node: '#00F2FF', 
+          link: '#334155', 
+          text: '#00F2FF',
+          bg: '#0F172A',
+          nodeBg: '#1E293B',
+          glow: '0 0 15px #00F2FF',
+          strokeWidth: 2
+        },
+        nature: { 
+          node: '#10B981', 
+          link: '#D1FAE5', 
+          text: '#064E3B',
+          bg: '#F0FDF4',
+          nodeBg: '#FFFFFF',
+          strokeWidth: 6
+        }
       };
 
       const colors = themeColors[theme];
-      const margin = { top: 100, right: 100, bottom: 100, left: 100 };
+      const margin = { top: 80, right: 80, bottom: 80, left: 80 };
       const innerWidth = width - margin.left - margin.right;
       const innerHeight = height - margin.top - margin.bottom;
+
+      // Add background color based on theme
+      svg.style('background-color', colors.bg);
 
       const g = svg.append('g');
 
@@ -59,34 +92,45 @@ export const TreeDiagram = ({ data, layoutType = 'vertical', theme = 'classic' }
         const treeLayout = d3.tree<TreeNode>().size([2 * Math.PI, radius]);
         treeLayout(root);
 
-        g.selectAll('.link')
+        const links = g.selectAll('.link')
           .data(root.links())
           .enter()
           .append('path')
-          .attr('d', d3.linkRadial<any, any>().angle(d => d.x).radius(d => d.y) as any)
+          .attr('class', 'link')
           .attr('fill', 'none')
           .attr('stroke', colors.link)
-          .attr('stroke-width', 5);
+          .attr('stroke-width', colors.strokeWidth)
+          .attr('d', d3.linkRadial<any, any>().angle(d => d.x).radius(() => 0) as any);
+
+        links.transition()
+          .duration(800)
+          .attr('d', d3.linkRadial<any, any>().angle(d => d.x).radius(d => d.y) as any);
 
         const node = g.selectAll('.node')
           .data(root.descendants())
           .enter()
           .append('g')
+          .attr('class', 'node')
+          .attr('transform', d => `rotate(${d.x * 180 / Math.PI - 90}) translate(0,0)`);
+
+        node.transition()
+          .duration(800)
           .attr('transform', d => `rotate(${d.x * 180 / Math.PI - 90}) translate(${d.y},0)`);
 
         node.append('circle')
           .attr('r', 30)
-          .attr('fill', '#fff')
+          .attr('fill', colors.nodeBg)
           .attr('stroke', colors.node)
-          .attr('stroke-width', 6);
+          .attr('stroke-width', colors.strokeWidth)
+          .style('filter', theme === 'cyberpunk' ? `drop-shadow(${colors.glow})` : 'none');
 
         node.append('text')
           .attr('dy', '.35em')
           .attr('text-anchor', 'middle')
-          .attr('font-size', '20px')
+          .attr('font-size', '18px')
           .attr('font-weight', '900')
           .attr('fill', colors.text)
-          .attr('transform', d => d.x < Math.PI ? 'rotate(0)' : 'rotate(180)')
+          .attr('transform', d => d.x < Math.PI ? 'rotate(90)' : 'rotate(-90)')
           .text(d => d.data.value);
 
       } else {
@@ -97,34 +141,52 @@ export const TreeDiagram = ({ data, layoutType = 'vertical', theme = 'classic' }
 
         treeLayout(root);
 
-        g.selectAll('.link')
+        const links = g.selectAll('.link')
           .data(root.links())
           .enter()
           .append('path')
+          .attr('class', 'link')
+          .attr('fill', 'none')
+          .attr('stroke', colors.link)
+          .attr('stroke-width', colors.strokeWidth)
+          .attr('d', (d: any) => {
+            const start = layoutType === 'horizontal' ? `M${d.source.y},${d.source.x}` : `M${d.source.x},${d.source.y}`;
+            return `${start} L${layoutType === 'horizontal' ? d.source.y : d.source.x},${layoutType === 'horizontal' ? d.source.x : d.source.y}`;
+          });
+
+        links.transition()
+          .duration(800)
           .attr('d', (layoutType === 'horizontal' 
             ? d3.linkHorizontal().x(d => (d as any).y).y(d => (d as any).x)
             : d3.linkVertical().x(d => (d as any).x).y(d => (d as any).y)) as any
-          )
-          .attr('fill', 'none')
-          .attr('stroke', colors.link)
-          .attr('stroke-width', 6);
+          );
 
         const node = g.selectAll('.node')
           .data(root.descendants())
           .enter()
           .append('g')
+          .attr('class', 'node')
+          .attr('transform', d => {
+            const x = layoutType === 'horizontal' ? root.y : root.x;
+            const y = layoutType === 'horizontal' ? root.x : root.y;
+            return `translate(${x},${y})`;
+          });
+
+        node.transition()
+          .duration(800)
           .attr('transform', d => layoutType === 'horizontal' ? `translate(${d.y},${d.x})` : `translate(${d.x},${d.y})`);
 
         node.append('circle')
           .attr('r', 35)
-          .attr('fill', '#fff')
+          .attr('fill', colors.nodeBg)
           .attr('stroke', colors.node)
-          .attr('stroke-width', 6);
+          .attr('stroke-width', colors.strokeWidth)
+          .style('filter', theme === 'cyberpunk' ? `drop-shadow(${colors.glow})` : 'none');
 
         node.append('text')
           .attr('dy', '.35em')
           .attr('text-anchor', 'middle')
-          .attr('font-size', '24px')
+          .attr('font-size', '22px')
           .attr('font-weight', '900')
           .attr('fill', colors.text)
           .text(d => d.data.value);
