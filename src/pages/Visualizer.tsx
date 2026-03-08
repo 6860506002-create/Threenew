@@ -18,20 +18,36 @@ export const Visualizer = () => {
   const [layout, setLayout] = useState<'vertical' | 'horizontal' | 'radial'>('vertical');
   const [theme, setTheme] = useState<'classic' | 'cyberpunk' | 'nature'>('classic');
   const [isLoading, setIsLoading] = useState(false);
+  const [dbStatus, setDbStatus] = useState<{ connected: boolean, mode: string } | null>(null);
 
   // Fetch tree data on mount
   useEffect(() => {
     fetchTree();
+    checkStatus();
   }, []);
 
+  const checkStatus = async () => {
+    try {
+      const res = await fetch('/api/status');
+      const data = await res.json();
+      setDbStatus(data);
+    } catch (err) {
+      setDbStatus({ connected: false, mode: "Disconnected" });
+    }
+  };
+
   const fetchTree = async () => {
+    setIsLoading(true);
     try {
       const res = await fetch('/api/tree');
+      if (!res.ok) throw new Error("Server error");
       const data = await res.json();
       setTreeData(data.tree);
       setTreeType(data.type);
     } catch (err) {
       console.error("Failed to fetch tree:", err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -99,7 +115,23 @@ export const Visualizer = () => {
       <div className="grid gap-8 lg:grid-cols-[1fr_2fr]">
         <div className="space-y-6">
           <Card title="การตั้งค่า">
-            <div className="space-y-4">
+            <div className="space-y-6">
+              {/* Connection Status */}
+              <div className={cn(
+                "rounded-xl p-3 text-[10px] font-bold border flex items-center gap-2 uppercase tracking-wider",
+                dbStatus?.connected 
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
+                  : "bg-amber-50 text-amber-700 border-amber-100"
+              )}>
+                <div className={cn(
+                  "w-1.5 h-1.5 rounded-full animate-pulse",
+                  dbStatus?.connected ? "bg-emerald-500" : "bg-amber-500"
+                )} />
+                <span>
+                  {dbStatus?.mode || "กำลังตรวจสอบ..."}
+                </span>
+              </div>
+
               <div>
                 <label className="block text-sm font-semibold text-slate-500 mb-2">ประเภทของ Tree</label>
                 <div className="grid grid-cols-3 gap-2">

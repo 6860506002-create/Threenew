@@ -148,18 +148,29 @@ async function getTreeState() {
 }
 
 async function startServer() {
-  await initDb();
+  // Start DB initialization in background, don't await it
+  initDb().catch(err => console.error("Background DB init failed:", err));
   
   const app = express();
   const PORT = 3000;
 
   app.use(express.json());
 
+  // Status API to check connection
+  app.get("/api/status", (req, res) => {
+    res.json({ 
+      connected: !useFallback && pool !== null,
+      mode: useFallback ? "Fallback (In-Memory)" : "Database (MariaDB)",
+      dbUrl: rawDbUrl.replace(/:[^:@]+@/, ":****@") // Hide password
+    });
+  });
+
   app.get("/api/tree", async (req, res) => {
     try {
       const state = await getTreeState();
       res.json(state);
     } catch (err) {
+      console.error("GET /api/tree error:", err);
       res.status(500).json({ error: "Failed to fetch tree" });
     }
   });
