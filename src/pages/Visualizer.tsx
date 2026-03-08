@@ -131,222 +131,212 @@ export const Visualizer = () => {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      {/* Header Section */}
-      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-600 text-white shadow-lg shadow-brand-200">
-              <Binary size={24} />
-            </div>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Arboris Visualizer</h1>
+      {/* Header Section - Cute Style */}
+      <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-6 rounded-[2rem] shadow-xl shadow-pink-100/50 border-2 border-pink-50">
+        <div className="flex items-center gap-4">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-pink-400 to-rose-400 text-white shadow-lg shadow-pink-200 rotate-3 hover:rotate-0 transition-transform duration-300">
+            <Binary size={32} />
           </div>
-          <p className="text-slate-500 font-medium">เครื่องมือจำลองโครงสร้างข้อมูลแบบต้นไม้ (Tree Data Structure)</p>
+          <div>
+            <h1 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+              Arboris <span className="text-pink-500">Magic</span> Tree
+            </h1>
+            <p className="text-slate-400 font-bold text-sm">มาสร้างต้นไม้แสนวิเศษกันเถอะ! ✨</p>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
           <button 
             onClick={handleShare}
-            className="flex items-center gap-2 rounded-xl bg-white border border-slate-200 px-4 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all"
+            className="flex items-center gap-2 rounded-2xl bg-white border-2 border-pink-100 px-5 py-2 text-sm font-bold text-pink-500 hover:bg-pink-50 hover:scale-105 active:scale-95 transition-all shadow-sm"
           >
-            {copied ? <Check size={14} className="text-emerald-500" /> : <Share2 size={14} />}
-            {copied ? "คัดลอกแล้ว!" : "แชร์ลิงก์"}
+            {copied ? <Check size={16} className="text-emerald-500" /> : <Share2 size={16} />}
+            {copied ? "คัดลอกแล้ว!" : "แชร์ให้เพื่อน"}
           </button>
 
-          {/* Sync Status Badge */}
-          <div className={cn(
-            "flex items-center gap-2 rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest border transition-all duration-500",
-            isSyncing 
-              ? "bg-blue-50 text-blue-600 border-blue-100" 
-              : dbStatus?.connected 
-                ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
-                : "bg-amber-50 text-amber-700 border-amber-100"
-          )}>
-            <div className={cn(
-              "w-2 h-2 rounded-full",
-              isSyncing ? "bg-blue-500 animate-spin" : dbStatus?.connected ? "bg-emerald-500" : "bg-amber-500"
-            )} />
-            <span>
-              {isSyncing ? "กำลังบันทึก..." : dbStatus?.mode || "OFFLINE"}
-            </span>
-          </div>
+          {/* Hidden DB status, only show sync animation if active */}
+          {isSyncing && (
+            <div className="flex items-center gap-2 rounded-full px-4 py-2 bg-blue-50 text-blue-500 text-[10px] font-black uppercase tracking-widest border-2 border-blue-100 animate-bounce">
+              <div className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />
+              <span>กำลังร่ายมนต์...</span>
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-        <div className="space-y-6">
-          {/* Controls Card */}
-          <Card className="border-slate-200 shadow-sm">
-            <div className="p-5 space-y-6">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">ประเภทของ Tree</label>
-                <div className="grid grid-cols-1 gap-2">
-                  {(['bst', 'max-heap', 'min-heap'] as const).map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => handleTypeChange(t)}
-                      className={cn(
-                        "flex items-center justify-between rounded-xl px-4 py-3 text-sm font-bold transition-all border group",
-                        treeType === t 
-                          ? "bg-slate-900 text-white border-slate-900 shadow-md" 
-                          : "bg-white text-slate-600 border-slate-200 hover:border-slate-400 hover:bg-slate-50"
-                      )}
-                    >
-                      <span>{t.toUpperCase()}</span>
-                      {treeType === t && <div className="w-1.5 h-1.5 rounded-full bg-brand-400" />}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="pt-6 border-t border-slate-100">
-                <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">ป้อนข้อมูล</label>
-                <form onSubmit={handleInsert} className="space-y-3">
-                  <div className="relative">
-                    <input
-                      type="number"
-                      value={inputValue}
-                      onChange={(e) => setInputValue(e.target.value)}
-                      placeholder="ใส่ตัวเลข..."
-                      className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 px-4 py-3 text-sm font-bold focus:border-brand-500 focus:bg-white focus:outline-none transition-all"
-                    />
-                    <button
-                      type="submit"
-                      className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white shadow-md hover:scale-105 active:scale-95 transition-all"
-                    >
-                      <Plus size={18} />
-                    </button>
-                  </div>
-                  
-                  <button
-                    type="button"
-                    onClick={resetTree}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-rose-50 px-4 py-3 text-xs font-bold text-rose-600 hover:bg-rose-100 transition-all border border-rose-100"
-                  >
-                    <RotateCcw size={14} />
-                    รีเซ็ตข้อมูลทั้งหมด
-                  </button>
-                </form>
-              </div>
+      <div className="grid gap-8 lg:grid-cols-[350px_1fr]">
+        <div className="space-y-8">
+          {/* Menu 1: Tree Type Selection */}
+          <div className="bg-white rounded-[2rem] p-6 shadow-xl shadow-indigo-100/50 border-2 border-indigo-50">
+            <label className="flex items-center gap-2 text-[12px] font-black text-indigo-400 uppercase tracking-widest mb-4">
+              <div className="w-2 h-2 rounded-full bg-indigo-400" />
+              เลือกประเภทต้นไม้
+            </label>
+            <div className="grid grid-cols-1 gap-3">
+              {(['bst', 'max-heap', 'min-heap'] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => handleTypeChange(t)}
+                  className={cn(
+                    "flex items-center justify-between rounded-2xl px-5 py-4 text-sm font-black transition-all border-2 group relative overflow-hidden",
+                    treeType === t 
+                      ? "bg-indigo-500 text-white border-indigo-500 shadow-lg shadow-indigo-200" 
+                      : "bg-white text-slate-500 border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/30"
+                  )}
+                >
+                  <span className="relative z-10">{t === 'bst' ? '🌳 Binary Search' : t === 'max-heap' ? '👑 Max Heap' : '🌱 Min Heap'}</span>
+                  {treeType === t && <div className="w-2 h-2 rounded-full bg-white animate-pulse relative z-10" />}
+                </button>
+              ))}
             </div>
-          </Card>
+          </div>
 
-          {/* History Card */}
-          <Card className="border-slate-200 shadow-sm bg-slate-50/30">
-            <div className="p-5">
-              <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-4">ประวัติการทำงาน</label>
-              <div className="space-y-3">
-                {history.length === 0 ? (
-                  <div className="text-[11px] text-slate-400 italic">ยังไม่มีประวัติ...</div>
-                ) : (
-                  history.map((h, i) => (
-                    <div key={i} className="flex items-center justify-between text-[11px] font-bold">
-                      <div className="flex items-center gap-2">
-                        <div className={cn(
-                          "w-1.5 h-1.5 rounded-full",
-                          h.action.includes('เพิ่ม') ? "bg-emerald-500" : h.action.includes('รีเซ็ต') ? "bg-rose-500" : "bg-blue-500"
-                        )} />
-                        <span className="text-slate-600">{h.action} {h.value !== undefined && `(${h.value})`}</span>
-                      </div>
-                      <span className="text-slate-400 font-mono">{h.time}</span>
+          {/* Menu 2: Input Controls */}
+          <div className="bg-white rounded-[2rem] p-6 shadow-xl shadow-pink-100/50 border-2 border-pink-50">
+            <label className="flex items-center gap-2 text-[12px] font-black text-pink-400 uppercase tracking-widest mb-4">
+              <div className="w-2 h-2 rounded-full bg-pink-400" />
+              ป้อนตัวเลขนำโชค
+            </label>
+            <form onSubmit={handleInsert} className="space-y-4">
+              <div className="relative">
+                <input
+                  type="number"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  placeholder="ใส่ตัวเลขที่นี่..."
+                  className="w-full rounded-2xl border-4 border-slate-50 bg-slate-50 px-5 py-4 text-lg font-black text-slate-700 placeholder:text-slate-300 focus:border-pink-200 focus:bg-white focus:outline-none transition-all"
+                />
+                <button
+                  type="submit"
+                  className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 text-white shadow-lg shadow-pink-200 hover:scale-110 active:scale-90 transition-all"
+                >
+                  <Plus size={24} strokeWidth={3} />
+                </button>
+              </div>
+              
+              <button
+                type="button"
+                onClick={resetTree}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-100 px-5 py-3 text-xs font-black text-slate-500 hover:bg-rose-500 hover:text-white transition-all border-2 border-transparent"
+              >
+                <RotateCcw size={16} strokeWidth={3} />
+                เริ่มปลูกใหม่ (Reset)
+              </button>
+            </form>
+          </div>
+
+          {/* Menu 3: History Log */}
+          <div className="bg-white rounded-[2rem] p-6 shadow-xl shadow-amber-100/50 border-2 border-amber-50">
+            <label className="flex items-center gap-2 text-[12px] font-black text-amber-400 uppercase tracking-widest mb-4">
+              <div className="w-2 h-2 rounded-full bg-amber-400" />
+              บันทึกความจำ
+            </label>
+            <div className="space-y-3">
+              {history.length === 0 ? (
+                <div className="text-[11px] text-slate-300 font-bold italic text-center py-4">ยังไม่มีการเคลื่อนไหว...</div>
+              ) : (
+                history.map((h, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-slate-50/50 border border-slate-100">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-2 h-2 rounded-full",
+                        h.action.includes('เพิ่ม') ? "bg-emerald-400" : h.action.includes('รีเซ็ต') ? "bg-rose-400" : "bg-sky-400"
+                      )} />
+                      <span className="text-[11px] font-black text-slate-600">{h.action} {h.value !== undefined && <span className="text-pink-500">[{h.value}]</span>}</span>
                     </div>
-                  ))
-                )}
-              </div>
+                    <span className="text-[9px] font-black text-slate-300 uppercase">{h.time}</span>
+                  </div>
+                ))
+              )}
             </div>
-          </Card>
+          </div>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-8">
           {/* Main Visualization Card */}
-          <Card className="p-0 overflow-hidden border-slate-200 shadow-xl shadow-slate-200/50 min-h-[600px] flex flex-col">
-            <div className="p-4 border-b border-slate-100 bg-white flex flex-wrap justify-between items-center gap-4">
-               <div className="flex items-center gap-4">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">การแสดงผล</span>
-                  <div className="h-4 w-px bg-slate-200" />
+          <div className="bg-white rounded-[3rem] p-4 shadow-2xl shadow-slate-200/50 border-4 border-white min-h-[650px] flex flex-col overflow-hidden">
+            <div className="p-6 flex flex-wrap justify-between items-center gap-6">
+               <div className="flex items-center gap-4 bg-slate-50 p-2 rounded-2xl">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">มุมมอง</span>
                   <div className="flex gap-1">
                     {(['vertical', 'horizontal', 'radial'] as const).map((l) => (
                       <button
                         key={l}
                         onClick={() => setLayout(l)}
                         className={cn(
-                          "px-3 py-1 text-[10px] font-bold rounded-md transition-all",
-                          layout === l ? "bg-slate-100 text-slate-900" : "text-slate-400 hover:text-slate-600"
+                          "px-4 py-2 text-[10px] font-black rounded-xl transition-all",
+                          layout === l ? "bg-white text-indigo-500 shadow-sm" : "text-slate-400 hover:text-slate-600"
                         )}
                       >
-                        {l.toUpperCase()}
+                        {l === 'vertical' ? '📐 แนวตั้ง' : l === 'horizontal' ? '📏 แนวนอน' : '⭕ วงกลม'}
                       </button>
                     ))}
                   </div>
                </div>
                
-               <div className="flex gap-1">
+               <div className="flex gap-2 bg-slate-50 p-2 rounded-2xl">
                   {(['classic', 'cyberpunk', 'nature'] as const).map((t) => (
                     <button
                       key={t}
                       onClick={() => setTheme(t)}
                       className={cn(
-                        "px-3 py-1 text-[10px] font-bold rounded-md transition-all",
-                        theme === t ? "bg-slate-800 text-white" : "text-slate-400 hover:text-slate-600"
+                        "px-4 py-2 text-[10px] font-black rounded-xl transition-all",
+                        theme === t ? "bg-slate-800 text-white shadow-lg" : "text-slate-400 hover:text-slate-600"
                       )}
                     >
-                      {t.toUpperCase()}
+                      {t === 'classic' ? '🎨 พาสเทล' : t === 'cyberpunk' ? '🌌 นีออน' : '🍃 ธรรมชาติ'}
                     </button>
                   ))}
                </div>
             </div>
             
-            <div className="flex-1 relative bg-white">
-              <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+            <div className="flex-1 relative rounded-[2rem] overflow-hidden bg-slate-50/30 m-2 border-2 border-slate-50">
+              <div className="absolute inset-0 opacity-[0.05] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 0)', backgroundSize: '32px 32px' }} />
               <TreeDiagram data={treeData} layoutType={layout} theme={theme} />
               
               {isLoading && (
-                <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] flex items-center justify-center z-10">
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="h-8 w-8 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">กำลังโหลด...</span>
+                <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center z-10">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="h-12 w-12 border-4 border-pink-400 border-t-transparent rounded-full animate-spin shadow-lg shadow-pink-100" />
+                    <span className="text-xs font-black text-pink-500 uppercase tracking-widest animate-pulse">กำลังเสกต้นไม้...</span>
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center">
-              <div className="flex items-center gap-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                <span>ประเภท: {treeType.toUpperCase()}</span>
-                <div className="h-3 w-px bg-slate-200" />
-                <span>โหมด: {layout.toUpperCase()}</span>
+            <div className="p-6 flex justify-between items-center">
+              <div className="flex items-center gap-6 text-[11px] font-black text-slate-300 uppercase tracking-widest">
+                <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-pink-300" /> TYPE: {treeType}</span>
+                <span className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-indigo-300" /> MODE: {layout}</span>
               </div>
-              <div className="text-[10px] font-mono text-slate-400">
-                Persistent MariaDB Storage
+              <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                Magic Tree Visualizer v2.0
               </div>
             </div>
-          </Card>
+          </div>
 
-          {/* Info Section */}
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card className="bg-brand-50/30 border-brand-100">
-              <div className="p-5">
-                <h3 className="text-sm font-bold text-brand-900 mb-3 flex items-center gap-2">
-                  <div className="w-1.5 h-4 bg-brand-500 rounded-full" />
-                  เกี่ยวกับโครงสร้างนี้
-                </h3>
-                <p className="text-xs text-brand-800 leading-relaxed opacity-80">
-                  {treeType === 'bst' 
-                    ? "Binary Search Tree (BST) เป็นโครงสร้างที่ช่วยให้การค้นหาข้อมูลทำได้รวดเร็ว โดยค่าที่น้อยกว่าจะถูกจัดไว้ทางซ้าย และค่าที่มากกว่าจะถูกจัดไว้ทางขวาเสมอ"
-                    : `Heap เป็น Complete Binary Tree ที่รักษาคุณสมบัติความเป็นลำดับ โดยใน ${treeType === 'max-heap' ? 'Max Heap' : 'Min Heap'} โหนดพ่อจะมีค่า ${treeType === 'max-heap' ? 'มากกว่าหรือเท่ากับ' : 'น้อยกว่าหรือเท่ากับ'} ลูกเสมอ`}
-                </p>
-              </div>
-            </Card>
-            <Card className="bg-slate-900 text-white border-none">
-              <div className="p-5">
-                <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
-                  <div className="w-1.5 h-4 bg-brand-400 rounded-full" />
-                  การบันทึกข้อมูล
-                </h3>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  ข้อมูลของคุณถูกบันทึกแบบ Real-time ลงในฐานข้อมูล MariaDB ทุกครั้งที่มีการเปลี่ยนแปลง คุณสามารถเปิดแอปนี้จากเครื่องอื่นเพื่อดูข้อมูลเดิมได้ทันที
-                </p>
-              </div>
-            </Card>
+          {/* Info Section - Friendly Style */}
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="bg-gradient-to-br from-indigo-50 to-blue-50 p-8 rounded-[2.5rem] border-2 border-white shadow-xl shadow-indigo-100/30">
+              <h3 className="text-lg font-black text-indigo-900 mb-4 flex items-center gap-3">
+                <div className="w-3 h-6 bg-indigo-400 rounded-full" />
+                ความลับของต้นไม้นี้
+              </h3>
+              <p className="text-sm text-indigo-800/70 font-bold leading-relaxed">
+                {treeType === 'bst' 
+                  ? "ต้นไม้แบบ BST จะช่วยเก็บข้อมูลให้เป็นระเบียบ! ถ้าตัวเลขไหนน้อยกว่าเพื่อนจะไปอยู่ทางซ้าย ถ้ามากกว่าจะไปอยู่ทางขวาจ้า"
+                  : `ต้นไม้แบบ Heap จะเน้นลำดับความสำคัญ! โดยใน ${treeType === 'max-heap' ? 'Max Heap' : 'Min Heap'} ตัวเลขที่ ${treeType === 'max-heap' ? 'ใหญ่ที่สุด' : 'เล็กที่สุด'} จะต้องอยู่บนสุดเสมอเลยนะ`}
+              </p>
+            </div>
+            <div className="bg-gradient-to-br from-pink-50 to-rose-50 p-8 rounded-[2.5rem] border-2 border-white shadow-xl shadow-pink-100/30">
+              <h3 className="text-lg font-black text-pink-900 mb-4 flex items-center gap-3">
+                <div className="w-3 h-6 bg-pink-400 rounded-full" />
+                ไม่ต้องกลัวหาย!
+              </h3>
+              <p className="text-sm text-pink-800/70 font-bold leading-relaxed">
+                ต้นไม้ที่คุณปลูกจะถูกบันทึกไว้ในสมุดเวทมนตร์ส่วนตัว (Database) ไม่ว่าจะปิดเครื่องหรือเปลี่ยนไปเล่นเครื่องอื่น ต้นไม้ต้นเดิมก็จะยังรอคุณอยู่ที่นี่เสมอจ้า ✨
+              </p>
+            </div>
           </div>
         </div>
       </div>

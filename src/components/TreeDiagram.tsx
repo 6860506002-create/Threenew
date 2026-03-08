@@ -29,22 +29,22 @@ export const TreeDiagram = ({ data, layoutType = 'vertical', theme = 'classic' }
     const innerHeight = height - margin.top - margin.bottom;
 
     const themeColors = {
-      classic: { node: '#16a34a', link: '#cbd5e1', text: '#1e293b', bg: '#fff' },
-      cyberpunk: { node: '#ff007f', link: '#7928ca', text: '#fff', bg: '#1e293b' },
-      nature: { node: '#15803d', link: '#86efac', text: '#14532d', bg: '#f0fdf4' }
+      classic: { node: '#FF6B6B', link: '#FFE3E3', text: '#4A4A4A', bg: '#FFF5F5', stroke: '#FF8E8E' },
+      cyberpunk: { node: '#00F2FF', link: '#3D0066', text: '#FFFFFF', bg: '#0F172A', stroke: '#7000FF' },
+      nature: { node: '#4ECDC4', link: '#E0F9F7', text: '#2F4F4F', bg: '#F0FFF4', stroke: '#45B7AF' }
     };
 
     const colors = themeColors[theme];
 
     const g = svg.append('g');
     
-    // Background for cyberpunk
+    // Background
     if (theme === 'cyberpunk') {
        svg.style('background', '#0f172a');
     } else if (theme === 'nature') {
-       svg.style('background', '#f0fdf4');
+       svg.style('background', '#f0fff4');
     } else {
-       svg.style('background', 'transparent');
+       svg.style('background', '#fff');
     }
 
     // Convert our custom tree structure to D3 hierarchy
@@ -59,7 +59,7 @@ export const TreeDiagram = ({ data, layoutType = 'vertical', theme = 'classic' }
       const radius = Math.min(innerWidth, innerHeight) / 2;
       g.attr('transform', `translate(${width / 2},${height / 2})`);
       
-      const treeLayout = d3.cluster<TreeNode>().size([2 * Math.PI, radius - 40]);
+      const treeLayout = d3.cluster<TreeNode>().size([2 * Math.PI, radius - 60]);
       treeLayout(root);
 
       // Links
@@ -74,7 +74,8 @@ export const TreeDiagram = ({ data, layoutType = 'vertical', theme = 'classic' }
         )
         .attr('fill', 'none')
         .attr('stroke', colors.link)
-        .attr('stroke-width', 2);
+        .attr('stroke-width', 4)
+        .attr('stroke-linecap', 'round');
 
       // Nodes
       const node = g.selectAll('.node')
@@ -88,17 +89,17 @@ export const TreeDiagram = ({ data, layoutType = 'vertical', theme = 'classic' }
         `);
 
       node.append('circle')
-        .attr('r', 20)
-        .attr('fill', colors.bg)
+        .attr('r', 24)
+        .attr('fill', '#fff')
         .attr('stroke', colors.node)
-        .attr('stroke-width', 3)
-        .attr('filter', 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))');
+        .attr('stroke-width', 4)
+        .style('filter', 'drop-shadow(0 8px 12px rgba(0,0,0,0.05))');
 
       node.append('text')
         .attr('dy', '.35em')
         .attr('text-anchor', 'middle')
-        .attr('font-size', '12px')
-        .attr('font-weight', 'bold')
+        .attr('font-size', '14px')
+        .attr('font-weight', '900')
         .attr('fill', colors.text)
         .attr('transform', d => d.x < Math.PI ? 'rotate(0)' : 'rotate(180)')
         .text(d => d.data.value);
@@ -123,7 +124,8 @@ export const TreeDiagram = ({ data, layoutType = 'vertical', theme = 'classic' }
         )
         .attr('fill', 'none')
         .attr('stroke', colors.link)
-        .attr('stroke-width', 2);
+        .attr('stroke-width', 6)
+        .attr('stroke-linecap', 'round');
 
       // Nodes
       const node = g.selectAll('.node')
@@ -134,17 +136,17 @@ export const TreeDiagram = ({ data, layoutType = 'vertical', theme = 'classic' }
         .attr('transform', d => layoutType === 'horizontal' ? `translate(${d.y},${d.x})` : `translate(${d.x},${d.y})`);
 
       node.append('circle')
-        .attr('r', 22)
-        .attr('fill', colors.bg)
+        .attr('r', 26)
+        .attr('fill', '#fff')
         .attr('stroke', colors.node)
-        .attr('stroke-width', 3)
-        .attr('filter', 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))');
+        .attr('stroke-width', 5)
+        .style('filter', 'drop-shadow(0 10px 15px rgba(0,0,0,0.08))');
 
       node.append('text')
         .attr('dy', '.35em')
         .attr('text-anchor', 'middle')
-        .attr('font-size', '14px')
-        .attr('font-weight', 'bold')
+        .attr('font-size', '16px')
+        .attr('font-weight', '900')
         .attr('fill', colors.text)
         .text(d => d.data.value);
     }
