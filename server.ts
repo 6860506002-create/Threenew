@@ -111,7 +111,14 @@ const insertBST = (root: TreeNode | null, value: number): TreeNode => {
 };
 
 const getTreeStats = (root: TreeNode | null): any => {
-  if (!root) return { height: 0, count: 0, min: null, max: null, isBalanced: true };
+  if (!root) return { 
+    height: 0, 
+    count: 0, 
+    min: null, 
+    max: null, 
+    isBalanced: true,
+    traversals: { inOrder: [], preOrder: [] }
+  };
   
   const nodes: number[] = [];
   const traverse = (node: TreeNode) => {

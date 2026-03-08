@@ -487,7 +487,7 @@ export const Visualizer = () => {
                 In-Order Traversal
               </h4>
               <div className="flex flex-wrap gap-2">
-                {!treeStats?.traversals.inOrder.length ? (
+                {(!treeStats || !treeStats.traversals?.inOrder?.length) ? (
                   <span className="text-xs text-slate-300 italic font-bold">Waiting for nodes...</span>
                 ) : (
                   treeStats.traversals.inOrder.map((v, i) => (
@@ -513,7 +513,7 @@ export const Visualizer = () => {
                 Pre-Order Traversal
               </h4>
               <div className="flex flex-wrap gap-2">
-                {!treeStats?.traversals.preOrder.length ? (
+                {(!treeStats || !treeStats.traversals?.preOrder?.length) ? (
                   <span className="text-xs text-slate-300 italic font-bold">Waiting for nodes...</span>
                 ) : (
                   treeStats.traversals.preOrder.map((v, i) => (
