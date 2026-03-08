@@ -1,37 +1,37 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { CheckCircle2, XCircle, RefreshCcw, Trophy } from 'lucide-react';
+import { CheckCircle2, XCircle, RefreshCcw, Trophy, ArrowRight, Sparkles, Heart, Star } from 'lucide-react';
 import { cn } from '../utils';
 
 const questions = [
   {
     id: 1,
-    question: "Root (ราก) ของ Tree คืออะไร?",
-    options: ["โหนดที่อยู่ล่างสุด", "โหนดบนสุดที่ไม่มีโหนดพ่อ", "โหนดที่ไม่มีลูก", "เส้นเชื่อมระหว่างโหนด"],
+    question: "โหนดบนสุดของต้นไม้เรียกว่าอะไรนะ?",
+    options: ["Leaf (ใบ)", "Root (ราก)", "Branch (กิ่ง)", "Seed (เมล็ด)"],
     answer: 1,
   },
   {
     id: 2,
-    question: "โหนดใดที่ไม่มีโหนดลูก?",
+    question: "โหนดที่ไม่มีลูกเลยเรียกว่าอะไร?",
     options: ["Root node", "Internal node", "Leaf node", "Parent node"],
     answer: 2,
   },
   {
     id: 3,
-    question: "Binary Tree สามารถมีลูกได้สูงสุดกี่โหนดต่อหนึ่งโหนด?",
-    options: ["1", "2", "3", "ไม่จำกัด"],
+    question: "Binary Tree หนึ่งโหนดมีลูกได้มากที่สุดกี่คน?",
+    options: ["1 คน", "2 คน", "3 คน", "ไม่จำกัด"],
     answer: 1,
   },
   {
     id: 4,
-    question: "Height (ความสูง) ของ Tree คืออะไร?",
-    options: ["จำนวนโหนดทั้งหมดใน Tree", "ความยาวของเส้นทางที่ยาวที่สุดจาก Root ไปยัง Leaf", "จำนวนระดับใน Tree", "จำนวนเส้นเชื่อมที่ต่อกับ Root"],
+    question: "ความสูงของต้นไม้ (Height) วัดจากอะไร?",
+    options: ["จำนวนโหนดทั้งหมด", "เส้นทางที่ยาวที่สุดจากรากไปหาใบ", "จำนวนชั้นทั้งหมด", "จำนวนกิ่งที่ติดกับราก"],
     answer: 1,
   },
   {
     id: 5,
-    question: "ใน Binary Search Tree (BST) ค่าที่น้อยกว่าจะถูกเก็บไว้ที่ใดเมื่อเทียบกับโหนดปัจจุบัน?",
-    options: ["ใน Subtree ฝั่งขวา", "ใน Subtree ฝั่งซ้าย", "ในโหนดพ่อ", "ในโหนดใบเท่านั้น"],
+    question: "ใน Binary Search Tree (BST) ข้อมูลที่น้อยกว่าจะถูกเก็บไว้ที่ไหน?",
+    options: ["ฝั่งขวา", "ฝั่งซ้าย", "โหนดพ่อแม่", "โหนดใบเท่านั้น"],
     answer: 1,
   },
 ];
@@ -71,29 +71,42 @@ export const Quiz = () => {
   };
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="w-full">
       <AnimatePresence mode="wait">
         {!showResult ? (
           <motion.div
             key="quiz"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="rounded-3xl border border-slate-200 bg-white p-8 shadow-xl"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="cute-card p-10 md:p-16 relative overflow-hidden"
           >
-            <div className="mb-8 flex items-center justify-between">
-              <span className="text-sm font-semibold uppercase tracking-wider text-slate-400">
-                คำถามที่ {currentQuestion + 1} จาก {questions.length}
-              </span>
-              <div className="h-2 w-32 rounded-full bg-slate-100 overflow-hidden">
-                <div 
-                  className="h-full bg-vibrant-gradient transition-all duration-500" 
-                  style={{ width: `${((currentQuestion + 1) / questions.length) * 100}%` }}
-                />
+            {/* Progress Bar */}
+            <div className="absolute top-0 left-0 w-full h-2 bg-slate-100">
+              <motion.div 
+                className="h-full bg-cute-pink" 
+                initial={{ width: 0 }}
+                animate={{ width: `${((currentQuestion + 1) / questions.length) * 100}%` }}
+                transition={{ duration: 0.5 }}
+              />
+            </div>
+
+            <div className="mb-12 flex items-center justify-between">
+              <div className="flex flex-col">
+                <span className="text-xs font-bold text-slate-400 mb-1">
+                  คำถามที่ {currentQuestion + 1} จาก {questions.length}
+                </span>
+                <span className="text-sm font-bold text-cute-pink flex items-center gap-1">
+                  <Sparkles size={14} /> กำลังทดสอบความรู้...
+                </span>
+              </div>
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-cute-yellow/20 text-slate-700 font-bold text-sm">
+                <Star size={16} fill="currentColor" className="text-cute-orange" />
+                <span>คะแนน: {score}</span>
               </div>
             </div>
 
-            <h2 className="mb-8 text-2xl font-bold text-slate-900">
+            <h2 className="mb-10 text-3xl font-display font-black text-slate-800 leading-tight">
               {questions[currentQuestion].question}
             </h2>
 
@@ -108,67 +121,79 @@ export const Quiz = () => {
                     onClick={() => handleOptionSelect(index)}
                     disabled={isAnswered}
                     className={cn(
-                      "flex items-center justify-between rounded-2xl border-2 p-4 text-left transition-all",
-                      !isAnswered && "hover:border-brand-200 hover:bg-brand-50",
-                      isAnswered && isCorrect && "border-green-500 bg-green-50 text-green-700",
-                      isAnswered && isSelected && !isCorrect && "border-red-500 bg-red-50 text-red-700",
-                      !isSelected && (!isAnswered || !isCorrect) && "border-slate-100 text-slate-600"
+                      "flex items-center justify-between rounded-[2rem] border-4 p-6 text-left transition-all group",
+                      !isAnswered && "border-slate-50 hover:border-cute-pink hover:bg-slate-50",
+                      isAnswered && isCorrect && "border-cute-mint bg-cute-mint/10 text-slate-800",
+                      isAnswered && isSelected && !isCorrect && "border-cute-pink bg-cute-pink/10 text-slate-800",
+                      !isSelected && (!isAnswered || !isCorrect) && "border-slate-50 text-slate-400"
                     )}
                   >
-                    <span className="font-medium">{option}</span>
-                    {isAnswered && isCorrect && <CheckCircle2 className="text-green-500" size={20} />}
-                    {isAnswered && isSelected && !isCorrect && <XCircle className="text-red-500" size={20} />}
+                    <span className="font-bold text-lg">{option}</span>
+                    <div className="shrink-0">
+                      {isAnswered && isCorrect && <CheckCircle2 className="text-cute-mint" size={28} />}
+                      {isAnswered && isSelected && !isCorrect && <XCircle className="text-cute-pink" size={28} />}
+                      {!isAnswered && <div className="w-7 h-7 rounded-full border-4 border-slate-100 group-hover:border-cute-pink transition-colors" />}
+                    </div>
                   </button>
                 );
               })}
             </div>
 
-            <div className="mt-8 flex justify-end">
+            <div className="mt-12 flex justify-end">
               <button
                 onClick={handleNext}
                 disabled={!isAnswered}
                 className={cn(
-                  "rounded-xl px-8 py-3 font-semibold text-white transition-all shadow-lg",
+                  "inline-flex items-center gap-2 rounded-[2rem] px-10 py-5 font-bold text-lg transition-all shadow-xl",
                   isAnswered 
-                    ? "bg-vibrant-gradient hover:scale-105 shadow-blue-200" 
-                    : "bg-slate-200 cursor-not-allowed"
+                    ? "bg-cute-pink text-white hover:scale-105 shadow-cute-pink/30" 
+                    : "bg-slate-100 text-slate-300 cursor-not-allowed shadow-none"
                 )}
               >
-                {currentQuestion === questions.length - 1 ? "เสร็จสิ้น" : "คำถามถัดไป"}
+                {currentQuestion === questions.length - 1 ? "ดูผลคะแนน ✨" : "ข้อถัดไป"}
+                <ArrowRight size={20} />
               </button>
             </div>
           </motion.div>
         ) : (
           <motion.div
             key="result"
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="rounded-3xl border border-slate-200 bg-white p-12 text-center shadow-2xl"
+            className="cute-card p-16 md:p-24 text-center relative overflow-hidden"
           >
-            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-vibrant-yellow text-slate-900 shadow-xl shadow-yellow-100">
-              <Trophy size={40} />
+            <div className="mx-auto mb-10 flex h-24 w-24 items-center justify-center rounded-[2.5rem] bg-cute-yellow text-slate-800 shadow-xl shadow-cute-yellow/30 animate-bounce-slow">
+              <Trophy size={48} />
             </div>
-            <h2 className="mb-2 text-3xl font-bold text-slate-900">ทำควิซเสร็จแล้ว!</h2>
-            <p className="mb-8 text-slate-500">คุณได้คะแนน {score} จาก {questions.length}</p>
+            <h2 className="mb-4 text-5xl font-display font-black text-slate-800">จบเกมแล้ว! ✨</h2>
+            <p className="mb-12 text-slate-500 font-medium text-xl">คุณทำคะแนนได้ {score} จาก {questions.length} คะแนน</p>
             
-            <div className="mb-10 flex justify-center gap-4">
-               <div className="rounded-2xl bg-vibrant-blue/10 p-4 min-w-[120px] border border-vibrant-blue/20">
-                  <div className="text-2xl font-bold text-vibrant-blue">{Math.round((score/questions.length)*100)}%</div>
-                  <div className="text-xs text-vibrant-blue/60 uppercase font-semibold">ความแม่นยำ</div>
+            <div className="mb-16 flex flex-wrap justify-center gap-6">
+               <div className="rounded-[2.5rem] bg-white border-4 border-slate-50 p-8 min-w-[160px] shadow-sm">
+                  <div className="text-4xl font-black text-cute-pink mb-1">{Math.round((score/questions.length)*100)}%</div>
+                  <div className="text-xs text-slate-400 uppercase font-bold tracking-widest">ความแม่นยำ</div>
                </div>
-               <div className="rounded-2xl bg-brand-50 p-4 min-w-[120px] border border-brand-100">
-                  <div className="text-2xl font-bold text-brand-600">{score}</div>
-                  <div className="text-xs text-brand-600/60 uppercase font-semibold">ถูกต้อง</div>
+               <div className="rounded-[2.5rem] bg-white border-4 border-slate-50 p-8 min-w-[160px] shadow-sm">
+                  <div className="text-4xl font-black text-cute-mint mb-1">{score}</div>
+                  <div className="text-xs text-slate-400 uppercase font-bold tracking-widest">ข้อที่ถูก</div>
                </div>
             </div>
 
             <button
               onClick={resetQuiz}
-              className="flex items-center gap-2 mx-auto rounded-xl bg-vibrant-gradient px-8 py-3 font-semibold text-white transition-all hover:scale-105 shadow-xl shadow-blue-200"
+              className="flex items-center gap-3 mx-auto rounded-[2rem] bg-cute-pink px-10 py-5 font-bold text-lg text-white transition-all hover:scale-110 active:scale-95 shadow-xl shadow-cute-pink/30"
             >
               <RefreshCcw size={20} />
-              ลองอีกครั้ง
+              เริ่มใหม่นะ ✨
             </button>
+
+            {/* Decorative elements */}
+            <div className="absolute top-10 left-10 text-cute-pink/10 animate-pulse">
+              <Heart size={40} fill="currentColor" />
+            </div>
+            <div className="absolute bottom-10 right-10 text-cute-yellow/20 animate-bounce">
+              <Star size={40} fill="currentColor" />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

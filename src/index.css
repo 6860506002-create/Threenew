@@ -1,49 +1,45 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Itim&family=Mali:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Outfit", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-sans: "Mali", "Itim", cursive, sans-serif;
+  --font-display: "Itim", cursive, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
 
-  --color-brand-50: #f0fdf4;
-  --color-brand-100: #dcfce7;
-  --color-brand-200: #bbf7d0;
-  --color-brand-500: #22c55e;
-  --color-brand-600: #16a34a;
-  --color-brand-700: #15803d;
-
-  --color-vibrant-pink: #ff007f;
-  --color-vibrant-orange: #ff6b00;
-  --color-vibrant-blue: #0070f3;
-  --color-vibrant-purple: #7928ca;
-  --color-vibrant-yellow: #ffea00;
+  --color-cute-pink: #FF85B3;
+  --color-cute-yellow: #FFD93D;
+  --color-cute-mint: #6BCB77;
+  --color-cute-blue: #4D96FF;
+  --color-cute-orange: #FF9248;
 }
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900 font-sans antialiased;
+    @apply bg-[#FFF9F9] text-slate-800 font-sans antialiased selection:bg-cute-pink/20 selection:text-cute-pink;
   }
   
   h1, h2, h3, h4 {
-    @apply font-display tracking-tight;
+    @apply font-display tracking-normal;
   }
 }
 
-.bg-vibrant-gradient {
-  background: linear-gradient(135deg, #22c55e 0%, #0070f3 50%, #7928ca 100%);
+.bg-cute-gradient {
+  background: linear-gradient(135deg, #FF85B3 0%, #FFD93D 100%);
 }
 
-.bg-warm-gradient {
-  background: linear-gradient(135deg, #ff6b00 0%, #ff007f 100%);
+.bg-mint-gradient {
+  background: linear-gradient(135deg, #6BCB77 0%, #4D96FF 100%);
 }
 
-.animate-float {
-  animation: float 6s ease-in-out infinite;
+.animate-bounce-slow {
+  animation: bounce 3s ease-in-out infinite;
 }
 
-@keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-20px); }
-  100% { transform: translateY(0px); }
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.cute-card {
+  @apply rounded-[2.5rem] border-4 border-white bg-white shadow-[0_8px_0_0_rgba(0,0,0,0.05)] transition-all hover:translate-y-[-4px] hover:shadow-[0_12px_0_0_rgba(0,0,0,0.05)];
 }

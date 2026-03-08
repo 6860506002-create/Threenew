@@ -42,12 +42,12 @@ export const TreeDiagram = ({ data, layoutType = 'vertical', theme = 'classic' }
         glow?: string;
       }> = {
         classic: { 
-          node: '#6366F1', 
-          link: '#E2E8F0', 
+          node: '#F472B6', // cute-pink
+          link: '#FCE7F3', 
           text: '#1E293B',
           bg: '#FFFFFF',
           nodeBg: '#FFFFFF',
-          strokeWidth: 4
+          strokeWidth: 6
         },
         cyberpunk: { 
           node: '#00F2FF', 
@@ -64,7 +64,7 @@ export const TreeDiagram = ({ data, layoutType = 'vertical', theme = 'classic' }
           text: '#064E3B',
           bg: '#F0FDF4',
           nodeBg: '#FFFFFF',
-          strokeWidth: 6
+          strokeWidth: 8
         }
       };
 
@@ -202,13 +202,13 @@ export const TreeDiagram = ({ data, layoutType = 'vertical', theme = 'classic' }
   return (
     <div ref={containerRef} className="h-full w-full min-h-[500px] relative flex items-center justify-center bg-white overflow-visible">
       {!data && (
-        <div className="absolute inset-0 flex items-center justify-center text-slate-300 font-black uppercase tracking-widest italic">
-          ป้อนตัวเลขเพื่อปลูกต้นไม้...
+        <div className="absolute inset-0 flex items-center justify-center text-slate-300 font-bold uppercase tracking-widest italic text-sm text-center px-10">
+          ยังไม่มีข้อมูลน้องต้นไม้เลยจ้า <br />ลองใส่ตัวเลขในแผงควบคุมด้านซ้ายดูนะ! 🌸
         </div>
       )}
       <svg 
         ref={svgRef} 
-        className="h-full w-full overflow-visible" 
+        className="h-full w-full overflow-visible transition-opacity duration-500" 
         style={{ opacity: data ? 1 : 0 }} 
       />
     </div>
