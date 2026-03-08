@@ -21,50 +21,64 @@ let useFallback = true; // Default to fallback for immediate availability
 let fallbackNodes: number[] = [];
 let fallbackType: 'bst' | 'max-heap' | 'min-heap' = 'bst';
 
-// Initialize Database Tables
+// Background Sync Helper
+async function syncToDb(action: 'insert' | 'update_type' | 'delete', data?: any) {
+  if (!pool) return;
+  
+  try {
+    const connection = await pool.getConnection();
+    if (action === 'insert' && data !== undefined) {
+      await connection.query("INSERT INTO tree_nodes (value) VALUES (?)", [data]);
+    } else if (action === 'update_type' && data !== undefined) {
+      await connection.query("UPDATE tree_settings SET setting_value = ? WHERE setting_key = 'tree_type'", [data]);
+      await connection.query("DELETE FROM tree_nodes");
+    } else if (action === 'delete') {
+      await connection.query("DELETE FROM tree_nodes");
+    }
+    connection.release();
+    console.log(`Background sync success: ${action}`);
+  } catch (err) {
+    console.error(`Background sync failed for ${action}:`, (err as Error).message);
+    // We don't change useFallback here, we just let it fail silently in background
+  }
+}
+
+// Initialize Database Tables and Load Initial State
 async function initDb() {
   try {
-    console.log("Attempting to connect to MariaDB...");
+    console.log("Attempting to connect to MariaDB for background sync...");
     pool = mysql.createPool({
       uri: dbUrl,
-      connectTimeout: 2000,
+      connectTimeout: 3000,
       waitForConnections: true,
       connectionLimit: 2,
       queueLimit: 0
     });
 
-    // Test connection
     const connection = await pool.getConnection();
-    console.log("MariaDB connection successful");
+    console.log("MariaDB connected! Loading initial state...");
 
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS tree_nodes (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        value INT NOT NULL
-      )
-    `);
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS tree_settings (
-        setting_key VARCHAR(50) PRIMARY KEY,
-        setting_value VARCHAR(50) NOT NULL
-      )
-    `);
+    await connection.query(`CREATE TABLE IF NOT EXISTS tree_nodes (id INT AUTO_INCREMENT PRIMARY KEY, value INT NOT NULL)`);
+    await connection.query(`CREATE TABLE IF NOT EXISTS tree_settings (setting_key VARCHAR(50) PRIMARY KEY, setting_value VARCHAR(50) NOT NULL)`);
     
-    const [rows]: any = await connection.query("SELECT * FROM tree_settings WHERE setting_key = 'tree_type'");
-    if (rows.length === 0) {
+    // Load existing data into memory
+    const [nodeRows]: any = await connection.query("SELECT value FROM tree_nodes ORDER BY id ASC");
+    const [typeRows]: any = await connection.query("SELECT setting_value FROM tree_settings WHERE setting_key = 'tree_type'");
+    
+    if (typeRows.length > 0) {
+      fallbackType = typeRows[0].setting_value;
+    } else {
       await connection.query("INSERT INTO tree_settings (setting_key, setting_value) VALUES ('tree_type', 'bst')");
     }
     
+    fallbackNodes = nodeRows.map((n: any) => n.value);
+    
     connection.release();
-    useFallback = false; // Successfully connected, stop using fallback
-    console.log("Database initialized and active");
+    useFallback = false; 
+    console.log("Initial state loaded from MariaDB");
   } catch (err) {
-    console.error("MariaDB connection failed. Staying in fallback mode.");
+    console.error("MariaDB connection failed. App will run in Offline-First mode.");
     useFallback = true;
-    if (pool) {
-      await pool.end().catch(() => {});
-      pool = null;
-    }
   }
 }
 
@@ -111,24 +125,9 @@ const siftUp = (arr: number[], type: 'max-heap' | 'min-heap') => {
 };
 
 async function getTreeState() {
-  let type: string = 'bst';
-  let values: number[] = [];
-
-  if (useFallback || !pool) {
-    type = fallbackType;
-    values = fallbackNodes;
-  } else {
-    try {
-      const [nodes]: any = await pool.query("SELECT value FROM tree_nodes ORDER BY id ASC");
-      const [settings]: any = await pool.query("SELECT setting_value FROM tree_settings WHERE setting_key = 'tree_type'");
-      type = settings[0]?.setting_value || 'bst';
-      values = nodes.map((n: any) => n.value);
-    } catch (err) {
-      console.error("DB Query failed, using fallback:", err);
-      type = fallbackType;
-      values = fallbackNodes;
-    }
-  }
+  // Always use memory for source of truth during session
+  const type = fallbackType;
+  const values = fallbackNodes;
   
   let tree: TreeNode | null = null;
   if (type === 'bst') {
@@ -167,6 +166,7 @@ async function startServer() {
 
   app.get("/api/tree", async (req, res) => {
     try {
+      // Always return from memory for instant speed
       const state = await getTreeState();
       res.json(state);
     } catch (err) {
@@ -177,17 +177,14 @@ async function startServer() {
 
   app.post("/api/tree/type", async (req, res) => {
     const { type } = req.body;
-    try {
-      if (!useFallback && pool) {
-        await pool.query("UPDATE tree_settings SET setting_value = ? WHERE setting_key = 'tree_type'", [type]);
-        await pool.query("DELETE FROM tree_nodes");
-      }
-      fallbackType = type;
-      fallbackNodes = [];
-      res.json({ success: true });
-    } catch (err) {
-      res.status(500).json({ error: "Failed to update type" });
-    }
+    // Update memory immediately
+    fallbackType = type;
+    fallbackNodes = [];
+    
+    // Background sync
+    syncToDb('update_type', type);
+    
+    res.json({ success: true });
   });
 
   app.post("/api/tree/insert", async (req, res) => {
@@ -195,28 +192,24 @@ async function startServer() {
     const val = parseInt(value);
     if (isNaN(val)) return res.status(400).json({ error: "Invalid value" });
 
-    try {
-      if (!useFallback && pool) {
-        await pool.query("INSERT INTO tree_nodes (value) VALUES (?)", [val]);
-      }
-      fallbackNodes.push(val);
-      const state = await getTreeState();
-      res.json(state);
-    } catch (err) {
-      res.status(500).json({ error: "Failed to insert value" });
-    }
+    // Update memory immediately
+    fallbackNodes.push(val);
+    
+    // Background sync
+    syncToDb('insert', val);
+    
+    const state = await getTreeState();
+    res.json(state);
   });
 
   app.delete("/api/tree", async (req, res) => {
-    try {
-      if (!useFallback && pool) {
-        await pool.query("DELETE FROM tree_nodes");
-      }
-      fallbackNodes = [];
-      res.json({ success: true });
-    } catch (err) {
-      res.status(500).json({ error: "Failed to reset tree" });
-    }
+    // Update memory immediately
+    fallbackNodes = [];
+    
+    // Background sync
+    syncToDb('delete');
+    
+    res.json({ success: true });
   });
 
   if (process.env.NODE_ENV !== "production") {
