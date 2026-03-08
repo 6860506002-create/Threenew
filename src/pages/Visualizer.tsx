@@ -16,6 +16,7 @@ export const Visualizer = () => {
   const [inputValue, setInputValue] = useState('');
   const [treeType, setTreeType] = useState<'bst' | 'max-heap' | 'min-heap'>('bst');
   const [layout, setLayout] = useState<'vertical' | 'horizontal' | 'radial'>('vertical');
+  const [theme, setTheme] = useState<'classic' | 'cyberpunk' | 'nature'>('classic');
 
   const insertBST = (root: TreeNode | null, value: number): TreeNode => {
     if (!root) return { value };
@@ -138,6 +139,26 @@ export const Visualizer = () => {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-sm font-semibold text-slate-500 mb-2">สภาพแวดล้อม (Environment)</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['classic', 'cyberpunk', 'nature'] as const).map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setTheme(t)}
+                      className={cn(
+                        "rounded-lg px-2 py-2 text-xs font-bold transition-all border",
+                        theme === t 
+                          ? (t === 'cyberpunk' ? "bg-vibrant-purple text-white border-vibrant-purple" : t === 'nature' ? "bg-brand-600 text-white border-brand-600" : "bg-slate-800 text-white border-slate-800")
+                          : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                      )}
+                    >
+                      {t.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="pt-4 border-t border-slate-100">
                 <form onSubmit={handleInsert} className="space-y-4">
                   <div>
@@ -208,7 +229,7 @@ export const Visualizer = () => {
                <span className="text-xs font-mono text-slate-400">D3.js Rendering</span>
             </div>
             <div className="p-6">
-              <TreeDiagram data={treeData} layoutType={layout} />
+              <TreeDiagram data={treeData} layoutType={layout} theme={theme} />
             </div>
           </Card>
         </div>

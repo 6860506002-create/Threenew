@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Info, GitCommit, Layers, Network, ChevronRight } from 'lucide-react';
+import { Info, GitCommit, Layers, Network, ChevronRight, Sparkles } from 'lucide-react';
 import { Card } from '../components/Card';
 
 const topics = [
@@ -44,6 +44,18 @@ const topics = [
       { name: 'Binary Tree', desc: 'แต่ละโหนดมีลูกได้ไม่เกิน 2 โหนด (ซ้ายและขวา)' },
       { name: 'Binary Search Tree (BST)', desc: 'Binary Tree ที่ค่าฝั่งซ้าย < พ่อ < ฝั่งขวา' },
       { name: 'Heap Tree', desc: 'Binary Tree แบบสมบูรณ์ที่ใช้สำหรับ Priority Queues' }
+    ]
+  },
+  {
+    id: 'environment',
+    title: 'การประยุกต์ใช้งาน (Environment)',
+    icon: <Sparkles size={20} />,
+    content: 'ในโลกแห่งความเป็นจริง โครงสร้าง Tree ถูกนำไปใช้ในสภาพแวดล้อมที่หลากหลาย:',
+    list: [
+      { name: 'File Systems', desc: 'การจัดเก็บโฟลเดอร์และไฟล์ในคอมพิวเตอร์ของคุณ' },
+      { name: 'HTML DOM', desc: 'โครงสร้างของหน้าเว็บที่คุณกำลังดูอยู่ในขณะนี้' },
+      { name: 'Databases', desc: 'การใช้ B-Trees เพื่อช่วยให้ค้นหาข้อมูลมหาศาลได้อย่างรวดเร็ว' },
+      { name: 'AI & Machine Learning', desc: 'Decision Trees ช่วยให้ AI ตัดสินใจตามเงื่อนไขต่างๆ' }
     ]
   }
 ];

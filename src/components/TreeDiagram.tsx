@@ -10,9 +10,10 @@ interface TreeNode {
 interface TreeDiagramProps {
   data: TreeNode | null;
   layoutType?: 'vertical' | 'horizontal' | 'radial';
+  theme?: 'classic' | 'cyberpunk' | 'nature';
 }
 
-export const TreeDiagram = ({ data, layoutType = 'vertical' }: TreeDiagramProps) => {
+export const TreeDiagram = ({ data, layoutType = 'vertical', theme = 'classic' }: TreeDiagramProps) => {
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
@@ -27,7 +28,24 @@ export const TreeDiagram = ({ data, layoutType = 'vertical' }: TreeDiagramProps)
     const innerWidth = width - margin.left - margin.right;
     const innerHeight = height - margin.top - margin.bottom;
 
+    const themeColors = {
+      classic: { node: '#16a34a', link: '#cbd5e1', text: '#1e293b', bg: '#fff' },
+      cyberpunk: { node: '#ff007f', link: '#7928ca', text: '#fff', bg: '#1e293b' },
+      nature: { node: '#15803d', link: '#86efac', text: '#14532d', bg: '#f0fdf4' }
+    };
+
+    const colors = themeColors[theme];
+
     const g = svg.append('g');
+    
+    // Background for cyberpunk
+    if (theme === 'cyberpunk') {
+       svg.style('background', '#0f172a');
+    } else if (theme === 'nature') {
+       svg.style('background', '#f0fdf4');
+    } else {
+       svg.style('background', 'transparent');
+    }
 
     // Convert our custom tree structure to D3 hierarchy
     const root = d3.hierarchy(data, (d) => {
@@ -55,7 +73,7 @@ export const TreeDiagram = ({ data, layoutType = 'vertical' }: TreeDiagramProps)
           .radius(d => d.y) as any
         )
         .attr('fill', 'none')
-        .attr('stroke', '#cbd5e1')
+        .attr('stroke', colors.link)
         .attr('stroke-width', 2);
 
       // Nodes
@@ -71,17 +89,17 @@ export const TreeDiagram = ({ data, layoutType = 'vertical' }: TreeDiagramProps)
 
       node.append('circle')
         .attr('r', 20)
-        .attr('fill', '#fff')
-        .attr('stroke', '#16a34a')
+        .attr('fill', colors.bg)
+        .attr('stroke', colors.node)
         .attr('stroke-width', 3)
-        .attr('filter', 'drop-shadow(0 4px 6px rgba(0,0,0,0.05))');
+        .attr('filter', 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))');
 
       node.append('text')
         .attr('dy', '.35em')
         .attr('text-anchor', 'middle')
         .attr('font-size', '12px')
         .attr('font-weight', 'bold')
-        .attr('fill', '#1e293b')
+        .attr('fill', colors.text)
         .attr('transform', d => d.x < Math.PI ? 'rotate(0)' : 'rotate(180)')
         .text(d => d.data.value);
 
@@ -104,7 +122,7 @@ export const TreeDiagram = ({ data, layoutType = 'vertical' }: TreeDiagramProps)
           : d3.linkVertical().x(d => (d as any).x).y(d => (d as any).y)) as any
         )
         .attr('fill', 'none')
-        .attr('stroke', '#cbd5e1')
+        .attr('stroke', colors.link)
         .attr('stroke-width', 2);
 
       // Nodes
@@ -117,21 +135,21 @@ export const TreeDiagram = ({ data, layoutType = 'vertical' }: TreeDiagramProps)
 
       node.append('circle')
         .attr('r', 22)
-        .attr('fill', '#fff')
-        .attr('stroke', '#16a34a')
+        .attr('fill', colors.bg)
+        .attr('stroke', colors.node)
         .attr('stroke-width', 3)
-        .attr('filter', 'drop-shadow(0 4px 6px rgba(0,0,0,0.05))');
+        .attr('filter', 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))');
 
       node.append('text')
         .attr('dy', '.35em')
         .attr('text-anchor', 'middle')
         .attr('font-size', '14px')
         .attr('font-weight', 'bold')
-        .attr('fill', '#1e293b')
+        .attr('fill', colors.text)
         .text(d => d.data.value);
     }
 
-  }, [data, layoutType]);
+  }, [data, layoutType, theme]);
 
   return (
     <div className="relative h-[400px] w-full overflow-hidden rounded-2xl bg-slate-50 border border-slate-100">
