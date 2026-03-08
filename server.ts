@@ -25,12 +25,14 @@ let fallbackType: 'bst' | 'max-heap' | 'min-heap' = 'bst';
 try {
   pool = mysql.createPool({
     uri: dbUrl,
-    connectTimeout: 5000, // 5 seconds timeout
+    connectTimeout: 2000, // Reduce to 2 seconds for faster fallback
     waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
+    connectionLimit: 5,
+    queueLimit: 0,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 10000
   });
-  console.log("Database pool created");
+  console.log("Database pool created with 2s timeout");
 } catch (err) {
   console.error("Failed to create database pool, using fallback:", err);
   useFallback = true;
@@ -47,7 +49,12 @@ async function initDb() {
   if (useFallback || !pool) return;
   
   try {
-    const connection = await pool.getConnection();
+    // Fast check if connection is actually possible
+    const connection = await Promise.race([
+      pool.getConnection(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 2000))
+    ]) as mysql.PoolConnection;
+
     await connection.query(`
       CREATE TABLE IF NOT EXISTS tree_nodes (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -69,7 +76,7 @@ async function initDb() {
     connection.release();
     console.log("Database initialized successfully");
   } catch (err) {
-    console.error("Database initialization failed, switching to fallback mode:", err);
+    console.error("Database connection failed or timed out. Switching to fallback mode.");
     useFallback = true;
   }
 }
