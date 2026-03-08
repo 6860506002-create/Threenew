@@ -193,98 +193,90 @@ async function getTreeState() {
   return { tree, type, stats };
 }
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
+const app = express();
+const PORT = 3000;
 
-  app.use(express.json());
+app.use(express.json());
 
-  // Status API to check connection
-  app.get("/api/status", (req, res) => {
-    res.json({ 
-      connected: !useFallback && pool !== null,
-      mode: useFallback ? "Fallback (In-Memory)" : "Database (MariaDB)",
-      dbUrl: rawDbUrl.replace(/:[^:@]+@/, ":****@") // Hide password
-    });
+let dbInitialized = false;
+
+// Lazy DB Init
+async function ensureDbInit() {
+  if (dbInitialized) return;
+  await initDb();
+  dbInitialized = true;
+}
+
+// Status API to check connection
+app.get("/api/status", async (req, res) => {
+  await ensureDbInit();
+  res.json({ 
+    connected: !useFallback && pool !== null,
+    mode: useFallback ? "Fallback (In-Memory)" : "Database (MariaDB)",
+    dbUrl: rawDbUrl.replace(/:[^:@]+@/, ":****@") // Hide password
   });
+});
 
-  app.get("/api/tree", async (req, res) => {
-    try {
-      // Always return from memory for instant speed
-      const state = await getTreeState();
-      res.json(state);
-    } catch (err) {
-      console.error("GET /api/tree error:", err);
-      res.status(500).json({ error: "Failed to fetch tree" });
-    }
-  });
+app.get("/api/tree", async (req, res) => {
+  try {
+    await ensureDbInit();
+    const state = await getTreeState();
+    res.json(state);
+  } catch (err) {
+    console.error("GET /api/tree error:", err);
+    res.status(500).json({ error: "Failed to fetch tree" });
+  }
+});
 
-  app.post("/api/tree/type", async (req, res) => {
-    const { type } = req.body;
-    // Update memory immediately
-    fallbackType = type;
-    fallbackNodes = [];
-    
-    // Background sync
-    syncToDb('update_type', type);
-    
-    res.json({ success: true });
-  });
+app.post("/api/tree/type", async (req, res) => {
+  await ensureDbInit();
+  const { type } = req.body;
+  fallbackType = type;
+  fallbackNodes = [];
+  syncToDb('update_type', type);
+  res.json({ success: true });
+});
 
-  app.post("/api/tree/insert", async (req, res) => {
-    const { value } = req.body;
-    const val = parseInt(value);
-    if (isNaN(val)) return res.status(400).json({ error: "Invalid value" });
+app.post("/api/tree/insert", async (req, res) => {
+  await ensureDbInit();
+  const { value } = req.body;
+  const val = parseInt(value);
+  if (isNaN(val)) return res.status(400).json({ error: "Invalid value" });
+  fallbackNodes.push(val);
+  syncToDb('insert', val);
+  const state = await getTreeState();
+  res.json(state);
+});
 
-    // Update memory immediately
-    fallbackNodes.push(val);
-    
-    // Background sync
+app.post("/api/tree/insert-bulk", async (req, res) => {
+  await ensureDbInit();
+  const { values } = req.body;
+  if (!Array.isArray(values)) return res.status(400).json({ error: "Invalid values" });
+  const validValues = values.map(v => parseInt(v)).filter(v => !isNaN(v));
+  if (validValues.length === 0) return res.status(400).json({ error: "No valid values" });
+  fallbackNodes.push(...validValues);
+  for (const val of validValues) {
     syncToDb('insert', val);
-    
-    const state = await getTreeState();
-    res.json(state);
-  });
+  }
+  const state = await getTreeState();
+  res.json(state);
+});
 
-  app.post("/api/tree/insert-bulk", async (req, res) => {
-    const { values } = req.body;
-    if (!Array.isArray(values)) return res.status(400).json({ error: "Invalid values" });
+app.post("/api/tree/delete", async (req, res) => {
+  await ensureDbInit();
+  fallbackNodes = [];
+  syncToDb('delete');
+  res.json({ success: true });
+});
 
-    const validValues = values.map(v => parseInt(v)).filter(v => !isNaN(v));
-    if (validValues.length === 0) return res.status(400).json({ error: "No valid values" });
+app.delete("/api/tree", async (req, res) => {
+  await ensureDbInit();
+  fallbackNodes = [];
+  syncToDb('delete');
+  res.json({ success: true });
+});
 
-    // Update memory immediately
-    fallbackNodes.push(...validValues);
-    
-    // Background sync
-    for (const val of validValues) {
-      syncToDb('insert', val);
-    }
-    
-    const state = await getTreeState();
-    res.json(state);
-  });
-
-  app.post("/api/tree/delete", async (req, res) => {
-    // Update memory immediately
-    fallbackNodes = [];
-    
-    // Background sync
-    syncToDb('delete');
-    
-    res.json({ success: true });
-  });
-
-  app.delete("/api/tree", async (req, res) => {
-    // Update memory immediately
-    fallbackNodes = [];
-    
-    // Background sync
-    syncToDb('delete');
-    
-    res.json({ success: true });
-  });
-
+async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -298,11 +290,14 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    // Start DB initialization in background AFTER server is listening
-    initDb().catch(err => console.error("Background DB init failed:", err));
-  });
+  // Only listen if not running in a serverless environment (Vercel)
+  if (process.env.VERCEL !== "1") {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  }
 }
 
 startServer();
+
+export default app;

@@ -40,6 +40,7 @@ export const Visualizer = () => {
   const [history, setHistory] = useState<{ action: string, value?: number, time: string }[]>([]);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'controls' | 'stats' | 'history'>('controls');
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTree();
@@ -55,15 +56,17 @@ export const Visualizer = () => {
 
   const fetchTree = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const res = await fetch('/api/tree');
-      if (!res.ok) throw new Error("Server error");
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
       const data = await res.json();
       setTreeData(data.tree);
       setTreeType(data.type);
       setTreeStats(data.stats);
     } catch (err) {
       console.error("Failed to fetch tree:", err);
+      setError("ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง");
     } finally {
       setIsLoading(false);
     }
@@ -424,7 +427,26 @@ export const Visualizer = () => {
 
             <div className="flex-1 relative m-4 rounded-[2.5rem] bg-slate-50/50 overflow-hidden border-2 border-slate-100/50">
               <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 0)', backgroundSize: '24px 24px' }} />
-              <TreeDiagram data={treeData} layoutType={layout} theme={theme} />
+              
+              {error ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center gap-4">
+                  <div className="p-4 bg-rose-50 text-rose-500 rounded-2xl border border-rose-100">
+                    <Info size={32} />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-black text-slate-700">{error}</p>
+                    <p className="text-xs text-slate-400 font-bold">หากคุณใช้ Vercel กรุณาตรวจสอบการตั้งค่า API</p>
+                  </div>
+                  <button 
+                    onClick={fetchTree}
+                    className="px-6 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black shadow-lg shadow-indigo-100 hover:scale-105 active:scale-95 transition-all"
+                  >
+                    ลองใหม่อีกครั้ง
+                  </button>
+                </div>
+              ) : (
+                <TreeDiagram data={treeData} layoutType={layout} theme={theme} />
+              )}
               
               <AnimatePresence>
                 {isLoading && (
