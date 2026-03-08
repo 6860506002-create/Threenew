@@ -11,8 +11,30 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Database connection pool
-const dbUrl = process.env.DATABASE_URL || "mariadb://root:student@202.29.70.18:28000/6860506002";
-const pool = mysql.createPool(dbUrl);
+const rawDbUrl = process.env.DATABASE_URL || "mariadb://root:student@202.29.70.18:28000/6860506002";
+// mysql2 prefers mysql:// prefix even for MariaDB
+const dbUrl = rawDbUrl.replace("mariadb://", "mysql://");
+
+let pool: mysql.Pool | null = null;
+let useFallback = false;
+
+// Fallback in-memory storage
+let fallbackNodes: number[] = [];
+let fallbackType: 'bst' | 'max-heap' | 'min-heap' = 'bst';
+
+try {
+  pool = mysql.createPool({
+    uri: dbUrl,
+    connectTimeout: 5000, // 5 seconds timeout
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
+  });
+  console.log("Database pool created");
+} catch (err) {
+  console.error("Failed to create database pool, using fallback:", err);
+  useFallback = true;
+}
 
 interface TreeNode {
   value: number;
@@ -22,6 +44,8 @@ interface TreeNode {
 
 // Initialize Database Tables
 async function initDb() {
+  if (useFallback || !pool) return;
+  
   try {
     const connection = await pool.getConnection();
     await connection.query(`
@@ -37,7 +61,6 @@ async function initDb() {
       )
     `);
     
-    // Set default type if not exists
     const [rows]: any = await connection.query("SELECT * FROM tree_settings WHERE setting_key = 'tree_type'");
     if (rows.length === 0) {
       await connection.query("INSERT INTO tree_settings (setting_key, setting_value) VALUES ('tree_type', 'bst')");
@@ -46,7 +69,8 @@ async function initDb() {
     connection.release();
     console.log("Database initialized successfully");
   } catch (err) {
-    console.error("Database initialization failed:", err);
+    console.error("Database initialization failed, switching to fallback mode:", err);
+    useFallback = true;
   }
 }
 
@@ -87,11 +111,24 @@ const siftUp = (arr: number[], type: 'max-heap' | 'min-heap') => {
 };
 
 async function getTreeState() {
-  const [nodes]: any = await pool.query("SELECT value FROM tree_nodes ORDER BY id ASC");
-  const [settings]: any = await pool.query("SELECT setting_value FROM tree_settings WHERE setting_key = 'tree_type'");
-  
-  const type = settings[0]?.setting_value || 'bst';
-  const values = nodes.map((n: any) => n.value);
+  let type: string = 'bst';
+  let values: number[] = [];
+
+  if (useFallback || !pool) {
+    type = fallbackType;
+    values = fallbackNodes;
+  } else {
+    try {
+      const [nodes]: any = await pool.query("SELECT value FROM tree_nodes ORDER BY id ASC");
+      const [settings]: any = await pool.query("SELECT setting_value FROM tree_settings WHERE setting_key = 'tree_type'");
+      type = settings[0]?.setting_value || 'bst';
+      values = nodes.map((n: any) => n.value);
+    } catch (err) {
+      console.error("DB Query failed, using fallback:", err);
+      type = fallbackType;
+      values = fallbackNodes;
+    }
+  }
   
   let tree: TreeNode | null = null;
   if (type === 'bst') {
@@ -99,9 +136,6 @@ async function getTreeState() {
       tree = insertBST(tree, v);
     });
   } else {
-    // For heaps, we need to rebuild the heap structure from the raw input order
-    // but the input order in DB should already be a valid heap if we sifted on insert
-    // Actually, it's safer to just re-heapify the whole array to be sure
     const heapArr: number[] = [];
     values.forEach((v: number) => {
       heapArr.push(v);
@@ -133,8 +167,12 @@ async function startServer() {
   app.post("/api/tree/type", async (req, res) => {
     const { type } = req.body;
     try {
-      await pool.query("UPDATE tree_settings SET setting_value = ? WHERE setting_key = 'tree_type'", [type]);
-      await pool.query("DELETE FROM tree_nodes"); // Reset nodes on type change
+      if (!useFallback && pool) {
+        await pool.query("UPDATE tree_settings SET setting_value = ? WHERE setting_key = 'tree_type'", [type]);
+        await pool.query("DELETE FROM tree_nodes");
+      }
+      fallbackType = type;
+      fallbackNodes = [];
       res.json({ success: true });
     } catch (err) {
       res.status(500).json({ error: "Failed to update type" });
@@ -147,7 +185,10 @@ async function startServer() {
     if (isNaN(val)) return res.status(400).json({ error: "Invalid value" });
 
     try {
-      await pool.query("INSERT INTO tree_nodes (value) VALUES (?)", [val]);
+      if (!useFallback && pool) {
+        await pool.query("INSERT INTO tree_nodes (value) VALUES (?)", [val]);
+      }
+      fallbackNodes.push(val);
       const state = await getTreeState();
       res.json(state);
     } catch (err) {
@@ -157,7 +198,10 @@ async function startServer() {
 
   app.delete("/api/tree", async (req, res) => {
     try {
-      await pool.query("DELETE FROM tree_nodes");
+      if (!useFallback && pool) {
+        await pool.query("DELETE FROM tree_nodes");
+      }
+      fallbackNodes = [];
       res.json({ success: true });
     } catch (err) {
       res.status(500).json({ error: "Failed to reset tree" });
